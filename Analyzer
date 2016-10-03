@@ -2,50 +2,108 @@ __author__ = 'Ryan'
 
 """
 The point of this program is to analyze a csv file and print out the number of columns and rows, print the header
-names and gives the row number and column header of any blank data.
+names and gives the % of populated data in each column.  If 'email' is in a column header, it checks each cell
+for valid email syntax
 """
 
 import csv
+import re
 
-r = open('football.csv', 'rt')
+read_from = "sample_email.csv"
+#results = read_from.strip('.csv') + "_results.txt"
+results = read_from[:-4] + "_results.txt"
+
+regex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+invalid_email = 0
+
+r = open(read_from, 'rt')
+w = open(results, 'w')
 
 try:
     reader = csv.reader(r)
-    empty_columns = {}                              #Create empty dictionary - this will keep track of how many empty cells there are
+    empty_columns = {}
+    #Create empty dictionary - this will keep track of how many empty cells there are
 
-    for row in reader:                      #Cycles through each row
+    for row in reader:
+        #Cycles through each row
 
-        if reader.line_num == 1:            #If the first row is being read, it saves the headers in the header list
+        if reader.line_num == 1:
+            #If the first row is being read, it saves the headers in the header list
             header = row
             tick = 0
 
-            for info in row:                #Populate dictionary with names of headers and default values to 0
+            for info in row:
+                #Populate dictionary with names of headers and default values to 0
                 empty_columns[header[tick]] = 0
                 tick = tick + 1
 
         else:
-            tick = 0                        #tick keeps track of what column is being cycled through
+            tick = 0
+            #tick keeps track of what column is being cycled through
 
-            for info in row:                #Each cell is cycled through and can go through further analysis in this loop
+            for info in row:
+                #Each cell is cycled through and can go through further analysis in this loop
+
+                if 'email' in header[tick]:
+                    email_tick = tick
+                    #print(info, "should be an email address")
+                    #w.write(info + " should be an email address \n")
+
+                    match = re.match(regex, info)
+                    if match == None:  # change around to display each bad email in the report
+                        #print('Bad Syntax')
+                        #w.write("Bad Syntax \n")
+                        invalid_email = invalid_email + 1
+
 
                 #print(info)                #Print all information
                 if info == '':
                     #print('Row', reader.line_num, 'Column', header[tick], "holds blank information")
-                    empty_columns[header[tick]] = empty_columns[header[tick]] + 1       #If cell is empty, add 1 to the dictionary value
+                    empty_columns[header[tick]] = empty_columns[header[tick]] + 1
+                    #If cell is empty, add 1 to the dictionary value
                 tick = tick + 1
 
-    print(len(header), "total columns")     #Print the number of columns in the first row (assuming this is the headers)
-    print("Column titles", header)          #Print the names of the headers
-    print(reader.line_num - 1, "records")       #Print the number of columns excluding the header
+
+
+    w.write("Columns: " + (str(len(header))) + "\n")
+    print("Columns:", len(header))
+    #Print the number of columns in the first row (assuming this is the headers)
+
+    w.write("Records: " + str(reader.line_num - 1) + "\n \n")
+    #Writes the number of records to the txt file
+    print("Records:", reader.line_num - 1)
+    #Prints the number of records
+
+    w.write("Column titles: \n")
+    for titles in header:
+        w.write(titles + "\n")
+        #Writes the titles of the columns to the txt file
+    print("Column titles", header)
+    #Print the names of the headers
 
     tick = 0
+    w.write("\n")
 
     for info in row:
         if empty_columns[header[tick]] != 0:
-            print('Column:', header[tick], '-', round((100 - ((empty_columns[header[tick]]) / (reader.line_num - 1)) * 100), 2), '% complete')
-        tick = tick + 1                     #Print the column header and the % that is complete
+            percent_full = round((100 - ((empty_columns[header[tick]]) / (reader.line_num - 1)) * 100), 2)
+            print('Column:', header[tick], '-', percent_full, '% complete')
+            w.write("Column: " + header[tick] + " - " + str(percent_full) + "% complete \n")
+            #If all columns are not populated, print the column header and the % that is complete
+
+        else:
+            print("Column:", header[tick], "- 100 % complete")
+            w.write("Column: " + header[tick] + " - 100% complete \n")
+            #If columns are populated, print 100% complete
+
+        if 'email' in header[tick]:
+            email_incorrect = round((100 - ((invalid_email) / (reader.line_num - 1)) * 100), 2)
+            print('Email', email_incorrect, '% valid syntax')
+            w.write('Email: ' + str(email_incorrect) + '% valid syntax \n')
+        tick = tick + 1
 
     #print(empty)
 
 finally:
     r.close()
+    w.close()
